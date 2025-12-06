@@ -1,0 +1,23 @@
+{
+  "name": "cleaning-services-project",
+  "version": "1.0.0",
+  "description": "Home Cleaning Services Management System",
+  "scripts": {
+    "setup": "node setup-database.js",
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm start"
+  },
+  "keywords": [
+    "cleaning",
+    "services",
+    "database",
+    "project"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "mysql2": "^3.15.3"
+  }
+}
