@@ -1,38 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { orderAPI, billAPI } from '../services/api';
-import { Eye, DollarSign } from 'lucide-react';
+import { money, PageHeader, Notice, Table, EmptyState } from "../components/UI";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { orderAPI, billAPI } from "../services/api";
+import Modal from "../components/Modal";
+import { Eye, DollarSign } from "lucide-react";
 
 function AnnaOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const closeModal = useCallback(() => setShowModal(false), []);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [billAmount, setBillAmount] = useState('');
-  const [message, setMessage] = useState('');
+  const [billAmount, setBillAmount] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageIsError, setMessageIsError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
+    setError("");
     try {
       const response = await orderAPI.getAllOrders();
       setOrders(response.data);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      setError(
+        error.response?.data?.error ||
+          "Unable to load orders. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const updateOrderStatus = async (orderId, status) => {
+    setMessageIsError(false);
     try {
       await orderAPI.updateStatus(orderId, status);
       setMessage(`Order status updated to ${status}`);
       fetchOrders();
     } catch (error) {
-      setMessage('Failed to update status');
+      setMessageIsError(true);
+      setMessage(error?.response?.data?.error || "Failed to update status");
     }
   };
 
@@ -42,17 +54,24 @@ function AnnaOrders() {
     setShowModal(true);
   };
 
-  const submitBill = async () => {
+  const submitBill = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setMessageIsError(false);
     try {
       await billAPI.create({
         order_id: selectedOrder.order_id,
-        amount: billAmount
+        amount: billAmount,
       });
-      setMessage('Bill generated successfully!');
+      setMessage("Bill generated.");
       setShowModal(false);
       fetchOrders();
     } catch (error) {
-      setMessage('Failed to generate bill');
+      setMessageIsError(true);
+      setMessage(error?.response?.data?.error || "Failed to generate bill");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -62,17 +81,27 @@ function AnnaOrders() {
 
   return (
     <div className="container">
-      {message && <div className="alert alert-success">{message}</div>}
+      <PageHeader
+        title="Orders"
+        description="Manage your schedule and track each service."
+      />
+      <Notice message={error} error />
+      <Notice message={message} error={messageIsError} />
 
       <div className="card">
-        <h2 style={{ marginBottom: '24px' }}>Orders</h2>
+        <h2 style={{ marginBottom: "20px" }}>All orders</h2>
 
         {orders.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
-            No orders yet
-          </p>
+          <EmptyState
+            title={error ? "Records unavailable" : "No orders yet"}
+            description={
+              error
+                ? "Refresh the page to try again."
+                : "Accepted quotes will appear here as orders."
+            }
+          />
         ) : (
-          <table className="table">
+          <Table>
             <thead>
               <tr>
                 <th>Order ID</th>
@@ -87,22 +116,28 @@ function AnnaOrders() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(order => (
+              {orders.map((order) => (
                 <tr key={order.order_id}>
                   <td>#{order.order_id}</td>
                   <td>
-                    {order.first_name} {order.last_name}<br />
-                    <small style={{ color: '#64748b' }}>{order.email}</small>
+                    {order.first_name} {order.last_name}
+                    <br />
+                    <small style={{ color: "#64748b" }}>{order.email}</small>
                   </td>
                   <td>{order.service_address}</td>
                   <td>{order.cleaning_type}</td>
-                  <td>${order.final_price}</td>
-                  <td>{new Date(order.scheduled_datetime).toLocaleDateString()}</td>
+                  <td>{money(order.final_price)}</td>
+                  <td>
+                    {new Date(order.scheduled_datetime).toLocaleDateString()}
+                  </td>
                   <td>
                     <select
+                      aria-label={`Status for order ${order.order_id}`}
                       value={order.completion_status}
-                      onChange={(e) => updateOrderStatus(order.order_id, e.target.value)}
-                      style={{ padding: '4px 8px', fontSize: '12px' }}
+                      onChange={(e) =>
+                        updateOrderStatus(order.order_id, e.target.value)
+                      }
+                      style={{ padding: "4px 8px", fontSize: "12px" }}
                     >
                       <option value="scheduled">Scheduled</option>
                       <option value="in_progress">In Progress</option>
@@ -118,45 +153,56 @@ function AnnaOrders() {
                     )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: "flex", gap: "8px" }}>
                       <Link
                         to={`/order/${order.order_id}`}
                         className="btn btn-secondary"
-                        style={{ padding: '4px 8px', fontSize: '12px' }}
+                        style={{ padding: "4px 8px", fontSize: "12px" }}
                       >
-                        <Eye size={14} />
+                        <Eye size={14} /> View
                       </Link>
-                      {order.completion_status === 'completed' && order.has_bill === 0 && (
-                        <button
-                          onClick={() => handleGenerateBill(order)}
-                          className="btn btn-primary"
-                          style={{ padding: '4px 8px', fontSize: '12px' }}
-                        >
-                          <DollarSign size={14} /> Bill
-                        </button>
-                      )}
+                      {order.completion_status === "completed" &&
+                        order.has_bill === 0 && (
+                          <button
+                            onClick={() => handleGenerateBill(order)}
+                            className="btn btn-primary"
+                            style={{ padding: "4px 8px", fontSize: "12px" }}
+                          >
+                            <DollarSign size={14} /> Bill
+                          </button>
+                        )}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         )}
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal title="Generate bill" onClose={closeModal}>
+          <form onSubmit={submitBill}>
+            {messageIsError && <Notice message={message} error />}
             <h2>Generate Bill</h2>
-            <p><strong>Order ID:</strong> #{selectedOrder.order_id}</p>
-            <p><strong>Client:</strong> {selectedOrder.first_name} {selectedOrder.last_name}</p>
-            <p><strong>Address:</strong> {selectedOrder.service_address}</p>
-            
+            <p>
+              <strong>Order ID:</strong> #{selectedOrder.order_id}
+            </p>
+            <p>
+              <strong>Client:</strong> {selectedOrder.first_name}{" "}
+              {selectedOrder.last_name}
+            </p>
+            <p>
+              <strong>Address:</strong> {selectedOrder.service_address}
+            </p>
+
             <div className="form-group">
-              <label>Bill Amount *</label>
+              <label htmlFor="bill-amount">Bill Amount</label>
               <input
+                id="bill-amount"
                 type="number"
                 step="0.01"
+                min="0"
                 required
                 value={billAmount}
                 onChange={(e) => setBillAmount(e.target.value)}
@@ -164,15 +210,23 @@ function AnnaOrders() {
             </div>
 
             <div className="modal-actions">
-              <button onClick={submitBill} className="btn btn-primary">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primary"
+              >
                 Generate Bill
               </button>
-              <button onClick={() => setShowModal(false)} className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn btn-secondary"
+              >
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

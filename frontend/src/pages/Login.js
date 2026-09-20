@@ -1,77 +1,69 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { LogIn } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import AuthLayout from "../components/AuthLayout";
+import { Notice } from "../components/UI";
 
-function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
     setLoading(true);
-
-    const result = await login(formData.email, formData.password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
-    }
-    
+    const result = await login(email, password);
+    if (result.success)
+      navigate(result.client.isAnna ? "/anna/dashboard" : "/dashboard", {
+        replace: true,
+      });
+    else setError(result.error);
     setLoading(false);
   };
 
   return (
-    <div className="container" style={{ maxWidth: '450px', marginTop: '80px' }}>
-      <div className="card">
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#334155' }}>
-          <LogIn size={32} style={{ verticalAlign: 'middle', marginRight: '10px' }} />
-          Login to Your Account
-        </h2>
-        
-        {error && (
-          <div className="alert alert-error">{error}</div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Enter your email"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Enter your password"
-            />
-          </div>
-          
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        
-        <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#667eea', fontWeight: '600' }}>Register here</Link>
-        </p>
-      </div>
-    </div>
+    <AuthLayout>
+      <h2>Welcome back</h2>
+      <p className="auth-intro">Sign in to manage your cleaning services.</p>
+      <Notice message={error} error />
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="email">Email address</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+          <ArrowRight size={16} />
+        </button>
+      </form>
+      <p className="auth-switch">
+        New to Anna’s?<Link to="/register">Create an account</Link>
+      </p>
+    </AuthLayout>
   );
 }
-
-export default Login;

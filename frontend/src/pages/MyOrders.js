@@ -1,11 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { orderAPI } from '../services/api';
-import { Eye } from 'lucide-react';
+import {
+  Status,
+  money,
+  PageHeader,
+  Notice,
+  Table,
+  EmptyState,
+} from "../components/UI";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { orderAPI } from "../services/api";
+import { Eye } from "lucide-react";
 
 function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -16,7 +25,10 @@ function MyOrders() {
       const response = await orderAPI.getMyOrders();
       setOrders(response.data);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      setError(
+        error.response?.data?.error ||
+          "Unable to load orders. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -28,15 +40,25 @@ function MyOrders() {
 
   return (
     <div className="container">
+      <PageHeader
+        title="Your orders"
+        description="Upcoming bookings and completed services."
+      />
+      <Notice message={error} error />
       <div className="card">
-        <h2 style={{ marginBottom: '24px' }}>My Orders</h2>
+        <h2 style={{ marginBottom: "20px" }}>All orders</h2>
 
         {orders.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
-            No orders yet. Accept a quote to create an order!
-          </p>
+          <EmptyState
+            title={error ? "Records unavailable" : "No orders yet"}
+            description={
+              error
+                ? "Refresh the page to try again."
+                : "Accepted quotes will appear here as orders."
+            }
+          />
         ) : (
-          <table className="table">
+          <Table>
             <thead>
               <tr>
                 <th>Order ID</th>
@@ -50,28 +72,32 @@ function MyOrders() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(order => (
+              {orders.map((order) => (
                 <tr key={order.order_id}>
                   <td>#{order.order_id}</td>
                   <td>{order.service_address}</td>
                   <td>{order.cleaning_type}</td>
                   <td>{order.num_rooms}</td>
-                  <td>${order.final_price}</td>
-                  <td>{new Date(order.scheduled_datetime).toLocaleDateString()}</td>
+                  <td>{money(order.final_price)}</td>
                   <td>
-                    <span className={`badge badge-${order.completion_status}`}>
-                      {order.completion_status}
-                    </span>
+                    {new Date(order.scheduled_datetime).toLocaleDateString()}
                   </td>
                   <td>
-                    <Link to={`/order/${order.order_id}`} className="btn btn-secondary" style={{ padding: '6px 12px' }}>
+                    <Status value={order.completion_status} />
+                  </td>
+                  <td>
+                    <Link
+                      to={`/order/${order.order_id}`}
+                      className="btn btn-secondary"
+                      style={{ padding: "6px 12px" }}
+                    >
                       <Eye size={16} /> View
                     </Link>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         )}
       </div>
     </div>

@@ -1,175 +1,325 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { requestAPI, orderAPI, billAPI } from '../services/api';
-import { Plus, FileText, Package, DollarSign, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  requestAPI,
+  orderAPI,
+  billAPI,
+  getErrorMessage,
+} from "../services/api";
+import {
+  Plus,
+  FileText,
+  CalendarDays,
+  Receipt,
+  CheckCircle2,
+  MapPin,
+  MessageSquare,
+  Clock,
+} from "lucide-react";
+import {
+  PageHeader,
+  EmptyState,
+  Notice,
+  Table,
+  Status,
+  ViewLink,
+  money,
+  date,
+} from "../components/UI";
 
-function ClientDashboard() {
+export default function ClientDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    requests: 0,
-    orders: 0,
-    pendingBills: 0,
-    completedOrders: 0
-  });
-  const [recentRequests, setRecentRequests] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [data, setData] = useState({ requests: [], orders: [], bills: [] });
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState("");
   useEffect(() => {
-    fetchDashboardData();
+    let active = true;
+    Promise.all([
+      requestAPI.getMyRequests(),
+      orderAPI.getMyOrders(),
+      billAPI.getMyBills(),
+    ])
+      .then(([requests, orders, bills]) => {
+        if (active)
+          setData({
+            requests: requests.data,
+            orders: orders.data,
+            bills: bills.data,
+          });
+      })
+      .catch((error) => {
+        if (active) setError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const [requestsRes, ordersRes, billsRes] = await Promise.all([
-        requestAPI.getMyRequests(),
-        orderAPI.getMyOrders(),
-        billAPI.getMyBills()
-      ]);
-
-      setStats({
-        requests: requestsRes.data.length,
-        orders: ordersRes.data.length,
-        pendingBills: billsRes.data.filter(b => b.bill_status !== 'paid').length,
-        completedOrders: ordersRes.data.filter(o => o.completion_status === 'completed').length
-      });
-
-      setRecentRequests(requestsRes.data.slice(0, 5));
-      setRecentOrders(ordersRes.data.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
-  }
+  if (loading)
+    return (
+      <div className="loading" role="status">
+        Loading your overview…
+      </div>
+    );
+  const activeOrders = data.orders.filter((o) =>
+    ["scheduled", "in_progress"].includes(o.completion_status),
+  );
+  const nextOrder = activeOrders
+    .filter(
+      (o) =>
+        new Date(o.scheduled_datetime) >= new Date() ||
+        o.completion_status === "in_progress",
+    )
+    .sort(
+      (a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime),
+    )[0];
+  const unpaid = data.bills.filter((b) => b.bill_status !== "paid");
+  const stats = [
+    [
+      "Service requests",
+      data.requests.length,
+      "All requests",
+      FileText,
+      "/my-requests",
+    ],
+    [
+      "Active orders",
+      activeOrders.length,
+      "Scheduled or in progress",
+      CalendarDays,
+      "/my-orders",
+    ],
+    [
+      "Outstanding bills",
+      unpaid.length,
+      money(unpaid.reduce((sum, bill) => sum + Number(bill.amount), 0)) +
+        " remaining",
+      Receipt,
+      "/my-bills",
+    ],
+    [
+      "Completed cleans",
+      data.orders.filter((o) => o.completion_status === "completed").length,
+      "Services completed",
+      CheckCircle2,
+      "/my-orders",
+    ],
+  ];
 
   return (
     <div className="container">
-      <h1 style={{ color: 'white', marginBottom: '30px' }}>
-        Welcome back, {user?.first_name}! 👋
-      </h1>
-
-      {/* Stats Grid */}
-      <div className="grid">
-        <div className="stat-card">
-          <h3>Total Requests</h3>
-          <div className="value">{stats.requests}</div>
-          <Link to="/my-requests" style={{ color: '#667eea', fontSize: '14px' }}>View all →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Active Orders</h3>
-          <div className="value">{stats.orders}</div>
-          <Link to="/my-orders" style={{ color: '#667eea', fontSize: '14px' }}>View all →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Pending Bills</h3>
-          <div className="value">{stats.pendingBills}</div>
-          <Link to="/my-bills" style={{ color: '#667eea', fontSize: '14px' }}>View all →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Completed Orders</h3>
-          <div className="value">{stats.completedOrders}</div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card" style={{ marginTop: '30px' }}>
-        <h2 style={{ marginBottom: '20px' }}>Quick Actions</h2>
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <Link to="/new-request" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={20} /> New Service Request
-          </Link>
-          <Link to="/my-requests" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={20} /> My Requests
-          </Link>
-          <Link to="/my-orders" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Package size={20} /> My Orders
-          </Link>
-          <Link to="/my-bills" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign size={20} /> My Bills
-          </Link>
-        </div>
-      </div>
-
-      {/* Recent Requests */}
-      {recentRequests.length > 0 && (
-        <div className="card" style={{ marginTop: '30px' }}>
-          <h2 style={{ marginBottom: '20px' }}>Recent Requests</h2>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Service Address</th>
-                <th>Type</th>
-                <th>Rooms</th>
-                <th>Status</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentRequests.map(request => (
-                <tr key={request.request_id}>
-                  <td>#{request.request_id}</td>
-                  <td>{request.service_address}</td>
-                  <td>{request.cleaning_type}</td>
-                  <td>{request.num_rooms}</td>
-                  <td>
-                    <span className={`badge badge-${request.status}`}>{request.status}</span>
-                  </td>
-                  <td>{new Date(request.created_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Link to="/my-requests" style={{ color: '#667eea', fontWeight: '600', marginTop: '16px', display: 'inline-block' }}>
-            View all requests →
-          </Link>
-        </div>
-      )}
-
-      {/* Recent Orders */}
-      {recentOrders.length > 0 && (
-        <div className="card" style={{ marginTop: '30px' }}>
-          <h2 style={{ marginBottom: '20px' }}>Recent Orders</h2>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Address</th>
-                <th>Price</th>
-                <th>Scheduled</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map(order => (
-                <tr key={order.order_id}>
-                  <td>#{order.order_id}</td>
-                  <td>{order.service_address}</td>
-                  <td>${order.final_price}</td>
-                  <td>{new Date(order.scheduled_datetime).toLocaleString()}</td>
-                  <td>
-                    <span className={`badge badge-${order.completion_status}`}>{order.completion_status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Link to="/my-orders" style={{ color: '#667eea', fontWeight: '600', marginTop: '16px', display: 'inline-block' }}>
-            View all orders →
-          </Link>
-        </div>
+      <PageHeader
+        eyebrow="Your overview"
+        title={`Welcome back, ${user?.first_name}.`}
+        description="Here’s what’s happening with your home."
+      >
+        <Link to="/new-request" className="btn btn-primary">
+          <Plus size={16} />
+          New request
+        </Link>
+      </PageHeader>
+      <Notice message={error} error />
+      {!error && (
+        <>
+          <div className="grid">
+            {stats.map(([label, value, caption, Icon, to]) => (
+              <Link to={to} className="stat-card" key={label}>
+                <div className="stat-heading">
+                  <h3>{label}</h3>
+                  <Icon size={17} />
+                </div>
+                <div className="value">{value}</div>
+                <p className="stat-caption">{caption}</p>
+              </Link>
+            ))}
+          </div>
+          <div className="dashboard-columns">
+            <div>
+              <section className="card">
+                <div className="section-heading">
+                  <div>
+                    <h2>Recent requests</h2>
+                    <p>Your latest requests and quotes.</p>
+                  </div>
+                  <ViewLink to="/my-requests" />
+                </div>
+                {data.requests.length ? (
+                  <Table>
+                    <thead>
+                      <tr>
+                        <th>Request</th>
+                        <th>Service address</th>
+                        <th>Status</th>
+                        <th>Budget</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.requests.slice(0, 5).map((request) => (
+                        <tr key={request.request_id}>
+                          <td>
+                            <Link to={`/request/${request.request_id}`}>
+                              #{String(request.request_id).padStart(4, "0")}
+                            </Link>
+                            <br />
+                            <small>{date(request.created_at)}</small>
+                          </td>
+                          <td>
+                            {request.service_address}
+                            <br />
+                            <small>
+                              {request.cleaning_type} · {request.num_rooms}{" "}
+                              rooms
+                            </small>
+                          </td>
+                          <td>
+                            <Status value={request.status} />
+                          </td>
+                          <td>{money(request.proposed_budget)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="Your first clean starts here"
+                    description="Tell us about your space and preferred date. Anna will send you a quote."
+                  >
+                    <Link to="/new-request" className="btn btn-secondary">
+                      <Plus size={14} />
+                      Create a request
+                    </Link>
+                  </EmptyState>
+                )}
+              </section>
+              <section className="card">
+                <div className="section-heading">
+                  <div>
+                    <h2>Service schedule</h2>
+                    <p>Keep track of your confirmed bookings.</p>
+                  </div>
+                  <ViewLink to="/my-orders" />
+                </div>
+                {data.orders.length ? (
+                  <Table>
+                    <thead>
+                      <tr>
+                        <th>Service</th>
+                        <th>Scheduled</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.orders.slice(0, 4).map((order) => (
+                        <tr key={order.order_id}>
+                          <td>
+                            <Link to={`/order/${order.order_id}`}>
+                              {order.service_address}
+                            </Link>
+                            <br />
+                            <small>
+                              Order #{String(order.order_id).padStart(4, "0")}
+                            </small>
+                          </td>
+                          <td>{date(order.scheduled_datetime)}</td>
+                          <td>
+                            <Status value={order.completion_status} />
+                          </td>
+                          <td>{money(order.final_price)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No services scheduled"
+                    description="Once you accept a quote, your booking will appear here."
+                  />
+                )}
+              </section>
+            </div>
+            <aside className="dashboard-aside">
+              <section className="card next-service">
+                <div className="section-heading">
+                  <h3>Next service</h3>
+                  <CalendarDays size={17} />
+                </div>
+                {nextOrder ? (
+                  <>
+                    <p className="service-date">
+                      {new Date(
+                        nextOrder.scheduled_datetime,
+                      ).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p className="service-meta">
+                      {new Date(
+                        nextOrder.scheduled_datetime,
+                      ).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}{" "}
+                      · {nextOrder.cleaning_type}
+                    </p>
+                    <div className="service-address">
+                      <MapPin size={14} />
+                      {nextOrder.service_address}
+                    </div>
+                    <ViewLink to={`/order/${nextOrder.order_id}`}>
+                      View booking
+                    </ViewLink>
+                  </>
+                ) : (
+                  <>
+                    <p className="service-date">
+                      Room for a<br />
+                      fresh start.
+                    </p>
+                    <p className="service-meta">
+                      Choose a time that works for you.
+                    </p>
+                    <div className="service-address">
+                      <ViewLink to="/new-request">Request a clean</ViewLink>
+                    </div>
+                  </>
+                )}
+              </section>
+              <section className="card">
+                <h3>From request to clean</h3>
+                <div className="quiet-list">
+                  <div className="quiet-list-item">
+                    <FileText size={17} />
+                    <div>
+                      <strong>Tell us about your space</strong>
+                      <p>Share the details and your budget.</p>
+                    </div>
+                  </div>
+                  <div className="quiet-list-item">
+                    <MessageSquare size={17} />
+                    <div>
+                      <strong>Review your quote</strong>
+                      <p>Accept it or discuss changes with Anna.</p>
+                    </div>
+                  </div>
+                  <div className="quiet-list-item">
+                    <Clock size={17} />
+                    <div>
+                      <strong>We’ll take it from there</strong>
+                      <p>Track your service and billing here.</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </>
       )}
     </div>
   );
 }
-
-export default ClientDashboard;

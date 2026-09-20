@@ -1,194 +1,146 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { UserPlus } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import AuthLayout from "../components/AuthLayout";
+import { Notice } from "../components/UI";
 
-function Register() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    address: '',
-    credit_card_last4: '',
-    credit_card_type: ''
+export default function Register() {
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone_number: "",
+    address: "",
+    password: "",
+    confirmPassword: "",
+    credit_card_last4: "",
+    credit_card_type: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+  const change = (event) =>
+    setForm({ ...form, [event.target.name]: event.target.value });
+  const submit = async (event) => {
+    event.preventDefault();
+    setError("");
+    if (form.password !== form.confirmPassword) {
+      setError("Your passwords do not match.");
       return;
     }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setLoading(true);
-
-    const { confirmPassword, ...registerData } = formData;
-    const result = await register(registerData);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
-    }
-    
+    const { confirmPassword, ...data } = form;
+    const result = await register(data);
+    if (result.success) navigate("/dashboard", { replace: true });
+    else setError(result.error);
     setLoading(false);
   };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const field = (name, label, type = "text", autoComplete, placeholder) => (
+    <div className="form-group">
+      <label htmlFor={name}>{label}</label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        required
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        minLength={type === "password" ? 6 : undefined}
+        value={form[name]}
+        onChange={change}
+      />
+    </div>
+  );
 
   return (
-    <div className="container" style={{ maxWidth: '600px', marginTop: '40px' }}>
-      <div className="card">
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#334155' }}>
-          <UserPlus size={32} style={{ verticalAlign: 'middle', marginRight: '10px' }} />
-          Create Your Account
-        </h2>
-        
-        {error && (
-          <div className="alert alert-error">{error}</div>
+    <AuthLayout wide>
+      <h2>Create your account</h2>
+      <p className="auth-intro">
+        A few details, and you’re ready to book your first clean.
+      </p>
+      <Notice message={error} error />
+      <form onSubmit={submit}>
+        <div className="form-grid">
+          {field(
+            "first_name",
+            "First name",
+            "text",
+            "given-name",
+            "First name",
+          )}
+          {field("last_name", "Last name", "text", "family-name", "Last name")}
+        </div>
+        {field("email", "Email address", "email", "email", "you@example.com")}
+        {field("phone_number", "Phone number", "tel", "tel", "(555) 123-4567")}
+        {field(
+          "address",
+          "Home address",
+          "text",
+          "street-address",
+          "Street address, city, state",
         )}
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="form-grid">
+          {field(
+            "password",
+            "Password",
+            "password",
+            "new-password",
+            "At least 6 characters",
+          )}
+          {field(
+            "confirmPassword",
+            "Confirm password",
+            "password",
+            "new-password",
+            "Repeat your password",
+          )}
+        </div>
+        <details className="form-group">
+          <summary>
+            Payment reference <span className="service-meta">(optional)</span>
+          </summary>
+          <p className="form-note" style={{ marginTop: 10 }}>
+            For your records only. No payment is taken.
+          </p>
+          <div className="form-grid">
             <div className="form-group">
-              <label>First Name *</label>
+              <label htmlFor="credit_card_last4">Card’s last four digits</label>
               <input
-                type="text"
-                name="first_name"
-                required
-                value={formData.first_name}
-                onChange={handleChange}
-                placeholder="John"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Last Name *</label>
-              <input
-                type="text"
-                name="last_name"
-                required
-                value={formData.last_name}
-                onChange={handleChange}
-                placeholder="Doe"
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label>Email *</label>
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="john@example.com"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Phone Number *</label>
-            <input
-              type="tel"
-              name="phone_number"
-              required
-              value={formData.phone_number}
-              onChange={handleChange}
-              placeholder="555-1234"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Address *</label>
-            <input
-              type="text"
-              name="address"
-              required
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="123 Main St, City, State"
-            />
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>Credit Card Last 4 Digits</label>
-              <input
-                type="text"
+                id="credit_card_last4"
                 name="credit_card_last4"
-                maxLength="4"
-                value={formData.credit_card_last4}
-                onChange={handleChange}
+                inputMode="numeric"
+                pattern="[0-9]{4}"
+                maxLength={4}
+                value={form.credit_card_last4}
+                onChange={change}
                 placeholder="1234"
               />
             </div>
-            
             <div className="form-group">
-              <label>Card Type</label>
-              <select name="credit_card_type" value={formData.credit_card_type} onChange={handleChange}>
-                <option value="">Select...</option>
-                <option value="Visa">Visa</option>
-                <option value="Mastercard">Mastercard</option>
+              <label htmlFor="credit_card_type">Card type</label>
+              <select
+                id="credit_card_type"
+                name="credit_card_type"
+                value={form.credit_card_type}
+                onChange={change}
+              >
+                <option value="">Select card type</option>
+                <option>Visa</option>
+                <option>Mastercard</option>
                 <option value="Amex">American Express</option>
-                <option value="Discover">Discover</option>
+                <option>Discover</option>
               </select>
             </div>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>Password *</label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Min 6 characters"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Confirm Password *</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Re-enter password"
-              />
-            </div>
-          </div>
-          
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Creating Account...' : 'Register'}
-          </button>
-        </form>
-        
-        <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b' }}>
-          Already have an account? <Link to="/login" style={{ color: '#667eea', fontWeight: '600' }}>Login here</Link>
-        </p>
-      </div>
-    </div>
+        </details>
+        <button className="btn btn-primary" type="submit" disabled={loading}>
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+      </form>
+      <p className="auth-switch">
+        Already have an account?<Link to="/login">Sign in</Link>
+      </p>
+    </AuthLayout>
   );
 }
-
-export default Register;

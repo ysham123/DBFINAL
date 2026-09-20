@@ -7,14 +7,7 @@
 -- 5. Each Order has one Bill (which can be revised multiple times)
 -- 6. Each Bill can have multiple BillRevisions for dispute tracking
 
--- Drop tables if they exist (in reverse order of dependencies)
-DROP TABLE IF EXISTS BillRevisions;
-DROP TABLE IF EXISTS Bills;
-DROP TABLE IF EXISTS Orders;
-DROP TABLE IF EXISTS Quotes;
-DROP TABLE IF EXISTS RequestPhotos;
-DROP TABLE IF EXISTS ServiceRequests;
-DROP TABLE IF EXISTS Clients;
+-- Run only against an empty database. Existing tables are never dropped.
 
 -- Clients table
 CREATE TABLE Clients (
