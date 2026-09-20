@@ -20,7 +20,12 @@ export const AuthProvider = ({ children }) => {
     const savedUser = localStorage.getItem("user");
 
     try {
-      if (token && savedUser) setUser(JSON.parse(savedUser));
+      if (token && savedUser) {
+        const session = JSON.parse(savedUser);
+        if (typeof session?.isAdmin !== "boolean")
+          throw new Error("Sign in to refresh your session.");
+        setUser(session);
+      }
     } catch {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -89,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isAuthenticated: !!user,
-    isAnna: user?.isAnna || false,
+    isAdmin: user?.isAdmin || false,
     loading,
   };
 

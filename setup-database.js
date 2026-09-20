@@ -2,9 +2,14 @@ const mysql = require("./backend/node_modules/mysql2/promise");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const bcrypt = require("./backend/node_modules/bcryptjs");
-require("./backend/config/env");
+const { adminEmail } = require("./backend/config/env");
+const { isEmail } = require("./backend/node_modules/validator");
 
 async function setupDatabase() {
+  if (!isEmail(adminEmail))
+    throw new Error(
+      "Set ADMIN_EMAIL to your administrator's email address in backend/.env.",
+    );
   const name = process.env.DB_NAME || "cleaning_services_db";
   if (!/^[a-zA-Z0-9_]+$/.test(name))
     throw new Error(
@@ -39,11 +44,18 @@ async function setupDatabase() {
     await connection.query(schema);
     const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
     await connection.query(
-      "UPDATE Clients SET password_hash = ? WHERE email = ?",
-      [passwordHash, "anna@cleaningservices.com"],
+      "INSERT INTO Clients (first_name, last_name, address, phone_number, email, password_hash) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        process.env.ADMIN_FIRST_NAME || "Workspace",
+        process.env.ADMIN_LAST_NAME || "Administrator",
+        "",
+        "",
+        adminEmail,
+        passwordHash,
+      ],
     );
     console.log(
-      "Database initialized. Sign in as anna@cleaningservices.com with your configured admin password.",
+      `Database initialized. Sign in as ${adminEmail} with your configured administrator password.`,
     );
     console.log("Create client accounts through the registration page.");
   } finally {

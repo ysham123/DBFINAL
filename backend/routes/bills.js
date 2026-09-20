@@ -1,16 +1,17 @@
 const express = require("express");
+const { isAdminEmail } = require("../config/env");
 const { body } = require("express-validator");
 const { validate } = require("../middleware/validate");
-const { authenticateToken, isAnna } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const db = require("../config/database");
 
 const router = express.Router();
 
-// Anna generates a bill for completed order
+// Administrator generates a bill for completed order
 router.post(
   "/",
   authenticateToken,
-  isAnna,
+  requireAdmin,
   [
     body("order_id").isInt({ min: 1 }).withMessage("Choose a valid order."),
     body("amount")
@@ -74,8 +75,8 @@ router.post(
   },
 );
 
-// Get all bills (Anna only)
-router.get("/all", authenticateToken, isAnna, async (req, res) => {
+// Get all bills (administrator only)
+router.get("/all", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [bills] = await db.query(
       `SELECT b.*, 
@@ -144,7 +145,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 
     // Check access rights
     if (
-      req.user.email !== "anna@cleaningservices.com" &&
+      !isAdminEmail(req.user.email) &&
       bill.client_id !== req.user.client_id
     ) {
       return res.status(403).json({ error: "Access denied" });
@@ -156,7 +157,10 @@ router.get("/:id", authenticateToken, async (req, res) => {
       [req.params.id],
     );
 
-    bill.revisions = revisions;
+    bill.revisions = revisions.map((revision) => ({
+      ...revision,
+      revised_by: revision.revised_by === "client" ? "client" : "admin",
+    }));
 
     res.json(bill);
   } catch (error) {
@@ -287,11 +291,11 @@ router.patch(
   },
 );
 
-// Anna revises a bill
+// Administrator revises a bill
 router.patch(
   "/:id/revise",
   authenticateToken,
-  isAnna,
+  requireAdmin,
   [
     body("revised_amount")
       .isFloat({ min: 0, max: 99999999.99 })

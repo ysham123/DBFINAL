@@ -186,7 +186,7 @@ export default function ClientDashboard() {
                 ) : (
                   <EmptyState
                     title="Your first clean starts here"
-                    description="Tell us about your space and preferred date. Anna will send you a quote."
+                    description="Tell us about your space and preferred date. Your service provider will send you a quote."
                   >
                     <Link to="/new-request" className="btn btn-secondary">
                       <Plus size={14} />
@@ -304,7 +304,7 @@ export default function ClientDashboard() {
                     <MessageSquare size={17} />
                     <div>
                       <strong>Review your quote</strong>
-                      <p>Accept it or discuss changes with Anna.</p>
+                      <p>Accept it or discuss changes with your provider.</p>
                     </div>
                   </div>
                   <div className="quiet-list-item">

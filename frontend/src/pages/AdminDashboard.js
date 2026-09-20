@@ -19,7 +19,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 
-function AnnaDashboard() {
+function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("frequent");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -357,4 +357,4 @@ function AnnaDashboard() {
   );
 }
 
-export default AnnaDashboard;
+export default AdminDashboard;

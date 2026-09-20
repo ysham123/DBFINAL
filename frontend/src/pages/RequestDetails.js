@@ -8,7 +8,7 @@ import { ArrowLeft, Image as ImageIcon, MessageSquare } from "lucide-react";
 function RequestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAnna } = useAuth();
+  const { isAdmin } = useAuth();
   const [request, setRequest] = useState(null);
   const [quotes, setQuotes] = useState([]);
   const [counterNote, setCounterNote] = useState("");
@@ -135,7 +135,7 @@ function RequestDetails() {
               <strong>Special Notes:</strong> {request.special_notes}
             </div>
           )}
-          {isAnna && (
+          {isAdmin && (
             <>
               <div>
                 <strong>Client:</strong> {request.first_name}{" "}
@@ -202,9 +202,9 @@ function RequestDetails() {
                   <strong>Scheduled Time:</strong>{" "}
                   {new Date(quote.scheduled_datetime).toLocaleString()}
                 </div>
-                {quote.anna_notes && (
+                {quote.provider_notes && (
                   <div>
-                    <strong>Anna's Notes:</strong> {quote.anna_notes}
+                    <strong>Provider notes:</strong> {quote.provider_notes}
                   </div>
                 )}
                 <div>
@@ -218,7 +218,7 @@ function RequestDetails() {
                 )}
               </div>
 
-              {!isAnna && quote.client_response === "pending" && (
+              {!isAdmin && quote.client_response === "pending" && (
                 <div
                   style={{
                     marginTop: "16px",

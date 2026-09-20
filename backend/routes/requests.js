@@ -1,7 +1,8 @@
 const express = require("express");
+const { isAdminEmail } = require("../config/env");
 const { body } = require("express-validator");
 const { validate, removeUploads } = require("../middleware/validate");
-const { authenticateToken, isAnna } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const db = require("../config/database");
 
@@ -118,8 +119,8 @@ router.get("/my-requests", authenticateToken, async (req, res) => {
   }
 });
 
-// Get all requests (Anna only)
-router.get("/all", authenticateToken, isAnna, async (req, res) => {
+// Get all requests (administrator only)
+router.get("/all", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [requests] = await db.query(
       `SELECT sr.*, 
@@ -157,7 +158,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 
     // Check access rights
     if (
-      req.user.email !== "anna@cleaningservices.com" &&
+      !isAdminEmail(req.user.email) &&
       request.client_id !== req.user.client_id
     ) {
       return res.status(403).json({ error: "Access denied" });

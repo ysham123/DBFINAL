@@ -5,7 +5,7 @@ import { orderAPI, billAPI } from "../services/api";
 import Modal from "../components/Modal";
 import { Eye, DollarSign } from "lucide-react";
 
-function AnnaOrders() {
+function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -232,4 +232,4 @@ function AnnaOrders() {
   );
 }
 
-export default AnnaOrders;
+export default AdminOrders;

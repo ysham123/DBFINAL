@@ -1,16 +1,17 @@
 const express = require("express");
+const { isAdminEmail } = require("../config/env");
 const { body } = require("express-validator");
 const { validate } = require("../middleware/validate");
-const { authenticateToken, isAnna } = require("../middleware/auth");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const db = require("../config/database");
 
 const router = express.Router();
 
-// Anna creates a quote or rejects request
+// Administrator creates a quote or rejects request
 router.post(
   "/",
   authenticateToken,
-  isAnna,
+  requireAdmin,
   [
     body("request_id").isInt({ min: 1 }).withMessage("Choose a valid request."),
     body("action")
@@ -25,7 +26,7 @@ router.post(
       .if(body("action").not().equals("reject"))
       .isISO8601()
       .withMessage("Choose a valid service date."),
-    body("anna_notes")
+    body("provider_notes")
       .optional()
       .isLength({ max: 5000 })
       .withMessage("Keep notes under 5,000 characters."),
@@ -42,7 +43,7 @@ router.post(
         action,
         quoted_price,
         scheduled_datetime,
-        anna_notes,
+        provider_notes: anna_notes,
       } = req.body;
 
       // Check if request exists and is in valid state
@@ -133,13 +134,18 @@ router.get("/request/:request_id", authenticateToken, async (req, res) => {
 
     // Check access rights
     if (
-      req.user.email !== "anna@cleaningservices.com" &&
+      !isAdminEmail(req.user.email) &&
       quotes[0].client_id !== req.user.client_id
     ) {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    res.json(quotes);
+    res.json(
+      quotes.map(({ anna_notes, ...quote }) => ({
+        ...quote,
+        provider_notes: anna_notes,
+      })),
+    );
   } catch (error) {
     console.error("Error fetching quotes:", error);
     res.status(500).json({ error: "Failed to fetch quotes" });

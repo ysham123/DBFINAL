@@ -19,7 +19,7 @@ export default function Login() {
     setLoading(true);
     const result = await login(email, password);
     if (result.success)
-      navigate(result.client.isAnna ? "/anna/dashboard" : "/dashboard", {
+      navigate(result.client.isAdmin ? "/admin/dashboard" : "/dashboard", {
         replace: true,
       });
     else setError(result.error);
@@ -62,7 +62,7 @@ export default function Login() {
         </button>
       </form>
       <p className="auth-switch">
-        New to Anna’s?<Link to="/register">Create an account</Link>
+        New here?<Link to="/register">Create an account</Link>
       </p>
     </AuthLayout>
   );

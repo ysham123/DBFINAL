@@ -11,14 +11,14 @@ import {
 import { Brand } from "./UI";
 
 export default function Navbar() {
-  const { user, logout, isAnna } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const links = [
-    [isAnna ? "/anna/dashboard" : "/dashboard", "Overview", LayoutDashboard],
-    [isAnna ? "/anna/requests" : "/my-requests", "Requests", FileText],
-    [isAnna ? "/anna/orders" : "/my-orders", "Orders", CalendarDays],
-    [isAnna ? "/anna/bills" : "/my-bills", "Billing", Receipt],
+    [isAdmin ? "/admin/dashboard" : "/dashboard", "Overview", LayoutDashboard],
+    [isAdmin ? "/admin/requests" : "/my-requests", "Requests", FileText],
+    [isAdmin ? "/admin/orders" : "/my-orders", "Orders", CalendarDays],
+    [isAdmin ? "/admin/bills" : "/my-bills", "Billing", Receipt],
   ];
   const signOut = () => {
     logout();
@@ -28,7 +28,7 @@ export default function Navbar() {
   return (
     <aside className="sidebar">
       <Brand />
-      <p className="nav-label">{isAnna ? "Workspace" : "Client portal"}</p>
+      <p className="nav-label">{isAdmin ? "Workspace" : "Client portal"}</p>
       <nav aria-label="Main navigation">
         {links.map(([to, label, Icon]) => (
           <NavLink
@@ -53,10 +53,10 @@ export default function Navbar() {
       <div className="sidebar-bottom">
         <div className="workspace-note">
           <strong>
-            {isAnna ? "Your daily workspace" : "A little less on your list."}
+            {isAdmin ? "Your daily workspace" : "A little less on your list."}
           </strong>
           <p>
-            {isAnna
+            {isAdmin
               ? "Manage requests, schedules, and billing in one place."
               : "Your next clean is a request away."}
           </p>
@@ -71,7 +71,7 @@ export default function Navbar() {
               {user?.first_name} {user?.last_name}
             </p>
             <p className="user-role">
-              {isAnna ? "Administrator" : "Personal account"}
+              {isAdmin ? "Administrator" : "Personal account"}
             </p>
           </div>
           <button

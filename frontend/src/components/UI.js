@@ -1,16 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
+import { brand } from "../branding";
 import { Link } from "react-router-dom";
 import { Home, Inbox, ArrowRight } from "lucide-react";
 
 export function Brand() {
+  const [logoFailed, setLogoFailed] = useState(false);
   return (
-    <Link className="brand" to="/" aria-label="Anna's Cleaning home">
-      <span className="brand-mark">
-        <Home size={21} />
-      </span>
+    <Link className="brand" to="/" aria-label={`${brand.name} home`}>
+      {brand.logoUrl && !logoFailed ? (
+        <img
+          className="brand-logo"
+          src={brand.logoUrl}
+          alt=""
+          onError={() => setLogoFailed(true)}
+        />
+      ) : (
+        <span className="brand-mark">
+          <Home size={21} />
+        </span>
+      )}
       <span>
-        <span className="brand-name">anna’s</span>
-        <span className="brand-description">Cleaning services</span>
+        <span className="brand-name">{brand.name}</span>
+        <span className="brand-description">{brand.tagline}</span>
       </span>
     </Link>
   );

@@ -1,11 +1,12 @@
 const express = require("express");
-const { authenticateToken, isAnna } = require("../middleware/auth");
+const { isAdminEmail } = require("../config/env");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const db = require("../config/database");
 
 const router = express.Router();
 
-// Get all orders (Anna only)
-router.get("/all", authenticateToken, isAnna, async (req, res) => {
+// Get all orders (administrator only)
+router.get("/all", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [orders] = await db.query(
       `SELECT o.*, 
@@ -53,7 +54,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
       `SELECT o.*, 
               c.first_name, c.last_name, c.email, c.phone_number,
               sr.service_address, sr.cleaning_type, sr.num_rooms, sr.special_notes, sr.preferred_datetime,
-              q.quoted_price, q.scheduled_datetime as quote_scheduled_datetime, q.anna_notes
+              q.quoted_price, q.scheduled_datetime as quote_scheduled_datetime, q.anna_notes AS provider_notes
        FROM Orders o
        JOIN Clients c ON o.client_id = c.client_id
        JOIN ServiceRequests sr ON o.request_id = sr.request_id
@@ -70,7 +71,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 
     // Check access rights
     if (
-      req.user.email !== "anna@cleaningservices.com" &&
+      !isAdminEmail(req.user.email) &&
       order.client_id !== req.user.client_id
     ) {
       return res.status(403).json({ error: "Access denied" });
@@ -92,36 +93,42 @@ router.get("/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Update order status (Anna only)
-router.patch("/:id/status", authenticateToken, isAnna, async (req, res) => {
-  try {
-    const { completion_status } = req.body;
+// Update order status (administrator only)
+router.patch(
+  "/:id/status",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { completion_status } = req.body;
 
-    const validStatuses = [
-      "scheduled",
-      "in_progress",
-      "completed",
-      "cancelled",
-    ];
-    if (!validStatuses.includes(completion_status)) {
-      return res.status(400).json({ error: "Invalid status" });
+      const validStatuses = [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ];
+      if (!validStatuses.includes(completion_status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      const completed_at =
+        completion_status === "completed" ? new Date() : null;
+
+      const [result] = await db.query(
+        "UPDATE Orders SET completion_status = ?, completed_at = ? WHERE order_id = ?",
+        [completion_status, completed_at, req.params.id],
+      );
+
+      if (!result.affectedRows)
+        return res.status(404).json({ error: "Order not found" });
+
+      res.json({ message: "Order status updated successfully" });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ error: "Failed to update order" });
     }
-
-    const completed_at = completion_status === "completed" ? new Date() : null;
-
-    const [result] = await db.query(
-      "UPDATE Orders SET completion_status = ?, completed_at = ? WHERE order_id = ?",
-      [completion_status, completed_at, req.params.id],
-    );
-
-    if (!result.affectedRows)
-      return res.status(404).json({ error: "Order not found" });
-
-    res.json({ message: "Order status updated successfully" });
-  } catch (error) {
-    console.error("Error updating order:", error);
-    res.status(500).json({ error: "Failed to update order" });
-  }
-});
+  },
+);
 
 module.exports = router;

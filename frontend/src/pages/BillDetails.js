@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 
 function BillDetails() {
   const { id } = useParams();
-  const { isAnna } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
   const [disputeNote, setDisputeNote] = useState("");
@@ -85,7 +85,7 @@ function BillDetails() {
     );
   }
 
-  const canPay = !isAnna && bill.bill_status !== "paid";
+  const canPay = !isAdmin && bill.bill_status !== "paid";
   const canDispute =
     bill.bill_status === "pending" || bill.bill_status === "revised";
 
@@ -205,7 +205,10 @@ function BillDetails() {
                   <strong>Amount:</strong> {money(revision.revised_amount)}
                 </div>
                 <div>
-                  <strong>By:</strong> {revision.revised_by}
+                  <strong>By:</strong>{" "}
+                  {revision.revised_by === "client"
+                    ? "Client"
+                    : "Administrator"}
                 </div>
                 <div>
                   <strong>Note:</strong> {revision.revision_note || "None"}
