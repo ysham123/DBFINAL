@@ -1,12 +1,16 @@
-# Anna’s Cleaning Services
+# Anna's Cleaning Services
 
-A client portal and workspace for a home cleaning business. Clients request services, review quotes, and track bookings and bills. Anna manages requests, schedules, billing, and client reports.
+A web application for managing home cleaning services, from the first request through scheduling and billing.
 
-Built with React 18, Express, and MySQL. The existing request → quote → order → bill workflow and database schema are preserved.
+Clients can request a clean, share photos, review or negotiate quotes, and track their orders and bills. The administrator manages incoming requests, service schedules, billing revisions, and eight client and business reports.
+
+Built with React 18, React Router, Express, and MySQL. Authentication uses JSON Web Tokens and bcrypt password hashing.
 
 ## Local setup
 
-Use Node.js 20 or newer and a running MySQL 8 server. XAMPP also works if its database supports the schema.
+Requirements: Node.js 20 or newer, npm, and a running MySQL 8 server.
+
+Install the dependencies and create the backend configuration:
 
 ```sh
 git clone https://github.com/ysham123/DBFINAL.git
@@ -15,7 +19,13 @@ npm run install-all
 cp backend/.env.example backend/.env
 ```
 
-Edit `backend/.env` with your database credentials. Set `ADMIN_PASSWORD` to a password of at least 12 characters and `JWT_SECRET` to a random secret of at least 32 characters. Generate a secret locally:
+Set the following values in `backend/.env`:
+
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME`: your MySQL connection details.
+- `ADMIN_PASSWORD`: a password of at least 12 characters for the initial administrator account.
+- `JWT_SECRET`: a random secret of at least 32 characters for signing session tokens.
+
+Generate a signing secret locally:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
@@ -27,37 +37,52 @@ Initialize an empty database:
 npm run setup
 ```
 
-Setup creates seven tables and the admin account. It refuses to run against a database that already contains tables. It does not reset existing accounts or create shared test passwords.
+Setup creates the database, seven tables, and the administrator account. The configured MySQL user needs permission to create the database and tables. Setup stops if the database already contains tables; existing installations can skip this step.
 
-Start the servers in separate terminals:
+Start the API:
 
 ```sh
 npm run start-backend
+```
+
+In a second terminal, start the frontend:
+
+```sh
 npm run start-frontend
 ```
 
-Open http://localhost:3000. Sign in as `anna@cleaningservices.com` using your configured admin password, or register a client account.
+Open [localhost:3000](http://localhost:3000). Sign in as `anna@cleaningservices.com` with your configured administrator password, or create a client account through registration.
 
 ## Configuration
 
-Backend configuration lives in `backend/.env`. See [the example](backend/.env.example) for database, server, upload, and authentication settings.
+See [backend/.env.example](backend/.env.example) for the complete server configuration. Local environment files are excluded from version control.
 
-The frontend uses `/api` by default. The development server proxies API and upload requests to port 5000. If the backend runs elsewhere, set `REACT_APP_API_URL` in `frontend/.env` to its full API URL and set `CLIENT_ORIGIN` on the backend to the frontend origin.
+The frontend uses `/api` by default. During development, API and upload requests are proxied to `http://localhost:5000`. For a separately hosted API, set `REACT_APP_API_URL` in `frontend/.env` to its full URL, including `/api`, and set the backend's `CLIENT_ORIGIN` to the frontend origin. Restart the development server or rebuild the frontend after changing its environment settings.
 
-Uploads default to `backend/uploads`; custom relative upload paths resolve from the backend directory. The app accepts up to five JPG, PNG, or GIF images, with a default limit of 5 MB each.
+Service requests accept up to five JPG, PNG, or GIF images, with a default limit of 5 MB each. Uploads are stored in `backend/uploads`. A custom relative `UPLOAD_PATH` resolves from the backend directory.
 
-## Build and checks
+## Build
 
 ```sh
 npm --prefix frontend run build
+npm run start-backend
+```
+
+The backend serves the compiled frontend, API, and uploaded files from the same origin. The configured database must be available when the server starts. Client and administrator routes support direct navigation and page refreshes.
+
+## Verification
+
+Run the API regression tests:
+
+```sh
 npm --prefix backend test
 ```
 
-After a frontend build, the backend serves the compiled app and supports direct links to client and admin pages. Run `npm run start-backend` with the configured database available.
+Tests cover authentication, authorization, input validation, quote acceptance, billing restrictions, upload cleanup, and connection failures. They use a database stub and do not require MySQL.
 
-The API health endpoint, `GET /api/health`, checks database connectivity and returns 503 if the database is unavailable.
+For a full installation check, follow the [manual workflow](SETUP_COMPLETE.md) against a running database. `GET /api/health` checks database connectivity and returns HTTP 503 when the database is unavailable.
 
-Backend tests exercise validation, authorization, upload errors, and transaction failures through HTTP using a database stub. A live MySQL instance is still required to verify SQL and the complete workflow.
+For connection troubleshooting, `node check-xampp.js` checks the credentials in `backend/.env`. It supports both XAMPP and standalone MySQL servers.
 
 ## Application structure
 
@@ -69,10 +94,10 @@ Backend tests exercise validation, authorization, upload errors, and transaction
 - `database/schema.sql`: schema for a fresh database.
 - `sql.txt`: reference queries for the eight reports.
 
-## Scope
+## Current scope
 
-The app records payments made outside the system; it does not process cards or transfer money. Uploads are stored locally and served through public asset URLs. There are no email notifications or password-reset flows.
+Billing records payments made outside the application; it does not process cards or transfer money. Uploaded photos are served through public asset URLs. Email notifications and password recovery are not implemented.
 
-The admin account uses the existing reserved email address. Changing to multiple staff roles would require a separate authorization change.
+Administration is limited to the reserved `anna@cleaningservices.com` account.
 
 Originally developed for CSC 6710 Database Systems.
