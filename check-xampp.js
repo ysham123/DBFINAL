@@ -1,47 +1,23 @@
-const mysql = require('mysql2/promise');
+const mysql = require("./backend/node_modules/mysql2/promise");
+require("./backend/config/env");
 
-async function checkXAMPP() {
-  console.log('🔍 Checking XAMPP MySQL connection...\n');
-
-  try {
-    const connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      connectTimeout: 5000
-    });
-
-    console.log('✅ SUCCESS! XAMPP MySQL is running and accessible!');
-    console.log('✅ Connection successful on localhost:3306');
-    console.log('✅ User: root (no password)\n');
-    
-    await connection.end();
-
-    console.log('👍 You\'re ready to run: node setup-database.js');
-    process.exit(0);
-
-  } catch (error) {
-    console.error('❌ CANNOT CONNECT TO XAMPP MySQL!\n');
-    
-    if (error.code === 'ECONNREFUSED') {
-      console.log('📋 Problem: MySQL server is not running\n');
-      console.log('🔧 Solution:');
-      console.log('   1. Open XAMPP Control Panel');
-      console.log('   2. Click START next to MySQL');
-      console.log('   3. Wait for green "Running" status');
-      console.log('   4. Run this check again: node check-xampp.js\n');
-    } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.log('📋 Problem: Access denied (wrong password)\n');
-      console.log('🔧 Solution:');
-      console.log('   1. Open backend/.env file');
-      console.log('   2. Check DB_PASSWORD setting');
-      console.log('   3. XAMPP default is empty password\n');
-    } else {
-      console.log('📋 Error:', error.message);
-    }
-    
-    process.exit(1);
-  }
+async function checkDatabase() {
+  const connection = await mysql.createConnection({
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    connectTimeout: 5000,
+  });
+  await connection.ping();
+  await connection.end();
+  console.log("MySQL is reachable using backend/.env.");
 }
 
-checkXAMPP();
+checkDatabase().catch((error) => {
+  console.error("Cannot connect to MySQL:", error.message);
+  console.error(
+    "Check that the server is running and that backend/.env contains the correct connection details.",
+  );
+  process.exitCode = 1;
+});

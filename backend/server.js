@@ -1,52 +1,101 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+const path = require("node:path");
+const fs = require("node:fs");
+const multer = require("multer");
+const { uploadDir, clientOrigin } = require("./config/env");
+const db = require("./config/database");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const clientRoutes = require('./routes/clients');
-const requestRoutes = require('./routes/requests');
-const quoteRoutes = require('./routes/quotes');
-const orderRoutes = require('./routes/orders');
-const billRoutes = require('./routes/bills');
-const dashboardRoutes = require('./routes/dashboard');
-
-// Use routes
-app.use('/api/auth', authRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/requests', requestRoutes);
-app.use('/api/quotes', quoteRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/bills', billRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+app.disable("x-powered-by");
+app.use(cors({ origin: clientOrigin }));
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
+  next();
 });
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: false, limit: "100kb" }));
+app.use("/uploads", express.static(uploadDir));
 
-// Error handling middleware
+for (const name of [
+  "auth",
+  "clients",
+  "requests",
+  "quotes",
+  "orders",
+  "bills",
+  "dashboard",
+]) {
+  app.use("/api/" + name, require("./routes/" + name));
+}
+
+app.get("/api/health", async (req, res) => {
+  try {
+    await db.query("SELECT 1");
+    res.json({ status: "ok" });
+  } catch {
+    res
+      .status(503)
+      .json({ status: "unavailable", error: "Database unavailable" });
+  }
+});
+app.use("/api", (req, res) =>
+  res.status(404).json({ error: "Endpoint not found" }),
+);
+
+const buildDir = path.join(__dirname, "..", "frontend", "build");
+if (fs.existsSync(path.join(buildDir, "index.html"))) {
+  app.use(express.static(buildDir));
+  app.get("*", (req, res) => res.sendFile(path.join(buildDir, "index.html")));
+}
+
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
+  if (res.headersSent) return next(err);
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      error:
+        err.code === "LIMIT_FILE_SIZE"
+          ? "An image exceeds the upload size limit."
+          : "Upload up to five images using the photos field.",
+    });
+  }
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  if (status === 500) console.error("Request failed:", err.message);
+  res.status(status).json({
+    error:
+      err.type === "entity.parse.failed"
+        ? "Invalid JSON body."
+        : status === 500
+          ? "Unable to complete this request. Please try again."
+          : err.message,
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+async function start() {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error(
+      "Set JWT_SECRET to a random value of at least 32 characters in backend/.env.",
+    );
+  }
+  await db.query("SELECT 1");
+  const server = app.listen(process.env.PORT || 5000, () => {
+    console.log(
+      "Cleaning services API listening on port " + (process.env.PORT || 5000),
+    );
+  });
+  const stop = () => server.close(() => db.end().then(() => process.exit(0)));
+  process.once("SIGTERM", stop);
+  process.once("SIGINT", stop);
+  return server;
+}
+
+if (require.main === module) {
+  start().catch((error) => {
+    console.error("Unable to start:", error.message);
+    db.end().finally(() => {
+      process.exitCode = 1;
+    });
+  });
+}
+module.exports = { app, start };

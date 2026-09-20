@@ -1,31 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { requestAPI, quoteAPI } from '../services/api';
-import { Eye, Check, X } from 'lucide-react';
+import {
+  Status,
+  money,
+  PageHeader,
+  Notice,
+  Table,
+  EmptyState,
+} from "../components/UI";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { requestAPI, quoteAPI } from "../services/api";
+import Modal from "../components/Modal";
+import { Eye, Check } from "lucide-react";
+
+const toLocalDateTime = (value) => {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+};
 
 function AnnaRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const closeModal = useCallback(() => setShowModal(false), []);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [quoteData, setQuoteData] = useState({
-    quoted_price: '',
-    scheduled_datetime: '',
-    anna_notes: ''
+    quoted_price: "",
+    scheduled_datetime: "",
+    anna_notes: "",
   });
-  const [rejectReason, setRejectReason] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
+  const [messageIsError, setMessageIsError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchRequests();
   }, []);
 
   const fetchRequests = async () => {
+    setError("");
     try {
       const response = await requestAPI.getAllRequests();
       setRequests(response.data);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      setError(
+        error.response?.data?.error ||
+          "Unable to load requests. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -35,42 +58,30 @@ function AnnaRequests() {
     setSelectedRequest(request);
     setQuoteData({
       quoted_price: request.proposed_budget,
-      scheduled_datetime: request.preferred_datetime.slice(0, 16),
-      anna_notes: ''
+      scheduled_datetime: toLocalDateTime(request.preferred_datetime),
+      anna_notes: "",
     });
     setShowModal(true);
   };
 
-  const submitQuote = async () => {
+  const submitQuote = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setMessageIsError(false);
     try {
       await quoteAPI.create({
         request_id: selectedRequest.request_id,
-        ...quoteData
+        ...quoteData,
       });
-      setMessage('Quote sent successfully!');
+      setMessage("Quote sent.");
       setShowModal(false);
       fetchRequests();
     } catch (error) {
-      setMessage('Failed to send quote');
-    }
-  };
-
-  const handleReject = async (requestId) => {
-    if (!rejectReason.trim()) {
-      setMessage('Please enter a rejection reason');
-      return;
-    }
-    try {
-      await quoteAPI.create({
-        request_id: requestId,
-        action: 'reject',
-        anna_notes: rejectReason
-      });
-      setMessage('Request rejected');
-      fetchRequests();
-      setRejectReason('');
-    } catch (error) {
-      setMessage('Failed to reject request');
+      setMessageIsError(true);
+      setMessage(error?.response?.data?.error || "Failed to send quote");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -80,17 +91,27 @@ function AnnaRequests() {
 
   return (
     <div className="container">
-      {message && <div className="alert alert-success">{message}</div>}
+      <PageHeader
+        title="Service requests"
+        description="Review incoming requests and prepare quotes."
+      />
+      <Notice message={error} error />
+      <Notice message={message} error={messageIsError} />
 
       <div className="card">
-        <h2 style={{ marginBottom: '24px' }}>Service Requests</h2>
+        <h2 style={{ marginBottom: "20px" }}>All requests</h2>
 
         {requests.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
-            No service requests
-          </p>
+          <EmptyState
+            title={error ? "Records unavailable" : "No requests yet"}
+            description={
+              error
+                ? "Refresh the page to try again."
+                : "New service requests will appear here."
+            }
+          />
         ) : (
-          <table className="table">
+          <Table>
             <thead>
               <tr>
                 <th>ID</th>
@@ -105,36 +126,37 @@ function AnnaRequests() {
               </tr>
             </thead>
             <tbody>
-              {requests.map(request => (
+              {requests.map((request) => (
                 <tr key={request.request_id}>
                   <td>#{request.request_id}</td>
                   <td>
-                    {request.first_name} {request.last_name}<br />
-                    <small style={{ color: '#64748b' }}>{request.email}</small>
+                    {request.first_name} {request.last_name}
+                    <br />
+                    <small style={{ color: "#64748b" }}>{request.email}</small>
                   </td>
                   <td>{request.service_address}</td>
                   <td>{request.cleaning_type}</td>
                   <td>{request.num_rooms}</td>
-                  <td>${request.proposed_budget}</td>
+                  <td>{money(request.proposed_budget)}</td>
                   <td>
-                    <span className={`badge badge-${request.status}`}>{request.status}</span>
+                    <Status value={request.status} />
                   </td>
                   <td>{request.photo_count}</td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: "flex", gap: "8px" }}>
                       <Link
                         to={`/request/${request.request_id}`}
                         className="btn btn-secondary"
-                        style={{ padding: '4px 8px', fontSize: '12px' }}
+                        style={{ padding: "4px 8px", fontSize: "12px" }}
                       >
-                        <Eye size={14} />
+                        <Eye size={14} /> View
                       </Link>
-                      {request.status === 'pending' && (
+                      {["pending", "negotiating"].includes(request.status) && (
                         <>
                           <button
                             onClick={() => handleQuote(request)}
                             className="btn btn-success"
-                            style={{ padding: '4px 8px', fontSize: '12px' }}
+                            style={{ padding: "4px 8px", fontSize: "12px" }}
                           >
                             <Check size={14} /> Quote
                           </button>
@@ -145,58 +167,85 @@ function AnnaRequests() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         )}
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal title="Create quote" onClose={closeModal}>
+          <form onSubmit={submitQuote}>
+            {messageIsError && <Notice message={message} error />}
             <h2>Create Quote</h2>
-            <p><strong>Client:</strong> {selectedRequest.first_name} {selectedRequest.last_name}</p>
-            <p><strong>Address:</strong> {selectedRequest.service_address}</p>
-            
+            <p>
+              <strong>Client:</strong> {selectedRequest.first_name}{" "}
+              {selectedRequest.last_name}
+            </p>
+            <p>
+              <strong>Address:</strong> {selectedRequest.service_address}
+            </p>
+
             <div className="form-group">
-              <label>Quoted Price *</label>
+              <label htmlFor="quoted-price">Quoted Price</label>
               <input
+                id="quoted-price"
                 type="number"
                 step="0.01"
+                min="0"
                 required
                 value={quoteData.quoted_price}
-                onChange={(e) => setQuoteData({ ...quoteData, quoted_price: e.target.value })}
+                onChange={(e) =>
+                  setQuoteData({ ...quoteData, quoted_price: e.target.value })
+                }
               />
             </div>
 
             <div className="form-group">
-              <label>Scheduled Date/Time *</label>
+              <label htmlFor="scheduled-date-time">Scheduled Date/Time</label>
               <input
+                id="scheduled-date-time"
                 type="datetime-local"
                 required
                 value={quoteData.scheduled_datetime}
-                onChange={(e) => setQuoteData({ ...quoteData, scheduled_datetime: e.target.value })}
+                onChange={(e) =>
+                  setQuoteData({
+                    ...quoteData,
+                    scheduled_datetime: e.target.value,
+                  })
+                }
               />
             </div>
 
             <div className="form-group">
-              <label>Notes</label>
+              <label htmlFor="notes">Notes</label>
               <textarea
+                id="notes"
                 rows="3"
                 value={quoteData.anna_notes}
-                onChange={(e) => setQuoteData({ ...quoteData, anna_notes: e.target.value })}
+                onChange={(e) =>
+                  setQuoteData({ ...quoteData, anna_notes: e.target.value })
+                }
                 placeholder="Additional notes for the client"
               />
             </div>
 
             <div className="modal-actions">
-              <button onClick={submitQuote} className="btn btn-primary">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primary"
+              >
                 Send Quote
               </button>
-              <button onClick={() => setShowModal(false)} className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn btn-secondary"
+              >
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

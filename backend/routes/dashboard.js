@@ -1,6 +1,6 @@
-const express = require('express');
-const { authenticateToken, isAnna } = require('../middleware/auth');
-const db = require('../config/database');
+const express = require("express");
+const { authenticateToken, isAnna } = require("../middleware/auth");
+const db = require("../config/database");
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(authenticateToken, isAnna);
 
 // Query 1: Frequent clients
-router.get('/frequent-clients', async (req, res) => {
+router.get("/frequent-clients", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -27,13 +27,13 @@ router.get('/frequent-clients', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching frequent clients:', error);
-    res.status(500).json({ error: 'Failed to fetch frequent clients' });
+    console.error("Error fetching frequent clients:", error);
+    res.status(500).json({ error: "Failed to fetch frequent clients" });
   }
 });
 
 // Query 2: Uncommitted clients
-router.get('/uncommitted-clients', async (req, res) => {
+router.get("/uncommitted-clients", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -54,19 +54,31 @@ router.get('/uncommitted-clients', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching uncommitted clients:', error);
-    res.status(500).json({ error: 'Failed to fetch uncommitted clients' });
+    console.error("Error fetching uncommitted clients:", error);
+    res.status(500).json({ error: "Failed to fetch uncommitted clients" });
   }
 });
 
 // Query 3: This month's accepted quotes
-router.get('/accepted-quotes', async (req, res) => {
+router.get("/accepted-quotes", async (req, res) => {
   try {
     const { year, month } = req.query;
     const queryYear = year || new Date().getFullYear();
-    const queryMonth = month || (new Date().getMonth() + 1);
+    const queryMonth = month || new Date().getMonth() + 1;
 
-    const [results] = await db.query(`
+    if (
+      !Number.isInteger(Number(queryYear)) ||
+      Number(queryYear) < 2000 ||
+      Number(queryYear) > 2100 ||
+      !Number.isInteger(Number(queryMonth)) ||
+      Number(queryMonth) < 1 ||
+      Number(queryMonth) > 12
+    ) {
+      return res.status(400).json({ error: "Choose a valid year and month." });
+    }
+
+    const [results] = await db.query(
+      `
       SELECT 
         q.quote_id,
         c.client_id,
@@ -85,17 +97,19 @@ router.get('/accepted-quotes', async (req, res) => {
         AND YEAR(q.created_at) = ?
         AND MONTH(q.created_at) = ?
       ORDER BY q.created_at DESC
-    `, [queryYear, queryMonth]);
+    `,
+      [queryYear, queryMonth],
+    );
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching accepted quotes:', error);
-    res.status(500).json({ error: 'Failed to fetch accepted quotes' });
+    console.error("Error fetching accepted quotes:", error);
+    res.status(500).json({ error: "Failed to fetch accepted quotes" });
   }
 });
 
 // Query 4: Prospective clients
-router.get('/prospective-clients', async (req, res) => {
+router.get("/prospective-clients", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -114,13 +128,13 @@ router.get('/prospective-clients', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching prospective clients:', error);
-    res.status(500).json({ error: 'Failed to fetch prospective clients' });
+    console.error("Error fetching prospective clients:", error);
+    res.status(500).json({ error: "Failed to fetch prospective clients" });
   }
 });
 
 // Query 5: Largest jobs
-router.get('/largest-jobs', async (req, res) => {
+router.get("/largest-jobs", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -148,13 +162,13 @@ router.get('/largest-jobs', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching largest jobs:', error);
-    res.status(500).json({ error: 'Failed to fetch largest jobs' });
+    console.error("Error fetching largest jobs:", error);
+    res.status(500).json({ error: "Failed to fetch largest jobs" });
   }
 });
 
 // Query 6: Overdue bills
-router.get('/overdue-bills', async (req, res) => {
+router.get("/overdue-bills", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -180,13 +194,13 @@ router.get('/overdue-bills', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching overdue bills:', error);
-    res.status(500).json({ error: 'Failed to fetch overdue bills' });
+    console.error("Error fetching overdue bills:", error);
+    res.status(500).json({ error: "Failed to fetch overdue bills" });
   }
 });
 
 // Query 7: Bad clients
-router.get('/bad-clients', async (req, res) => {
+router.get("/bad-clients", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT DISTINCT
@@ -218,13 +232,13 @@ router.get('/bad-clients', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching bad clients:', error);
-    res.status(500).json({ error: 'Failed to fetch bad clients' });
+    console.error("Error fetching bad clients:", error);
+    res.status(500).json({ error: "Failed to fetch bad clients" });
   }
 });
 
 // Query 8: Good clients
-router.get('/good-clients', async (req, res) => {
+router.get("/good-clients", async (req, res) => {
   try {
     const [results] = await db.query(`
       SELECT 
@@ -261,8 +275,8 @@ router.get('/good-clients', async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error('Error fetching good clients:', error);
-    res.status(500).json({ error: 'Failed to fetch good clients' });
+    console.error("Error fetching good clients:", error);
+    res.status(500).json({ error: "Failed to fetch good clients" });
   }
 });
 
