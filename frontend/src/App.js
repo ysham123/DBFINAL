@@ -12,7 +12,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ClientDashboard from "./pages/ClientDashboard";
-import AnnaDashboard from "./pages/AnnaDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import NewRequest from "./pages/NewRequest";
 import MyRequests from "./pages/MyRequests";
 import RequestDetails from "./pages/RequestDetails";
@@ -20,9 +20,9 @@ import MyOrders from "./pages/MyOrders";
 import OrderDetails from "./pages/OrderDetails";
 import MyBills from "./pages/MyBills";
 import BillDetails from "./pages/BillDetails";
-import AnnaRequests from "./pages/AnnaRequests";
-import AnnaOrders from "./pages/AnnaOrders";
-import AnnaBills from "./pages/AnnaBills";
+import AdminRequests from "./pages/AdminRequests";
+import AdminOrders from "./pages/AdminOrders";
+import AdminBills from "./pages/AdminBills";
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -34,18 +34,18 @@ function PrivateRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
-function AnnaRoute({ children }) {
-  const { isAnna, loading } = useAuth();
+function AdminRoute({ children }) {
+  const { isAdmin, loading } = useAuth();
 
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
 
-  return isAnna ? children : <Navigate to="/" />;
+  return isAdmin ? children : <Navigate to="/" />;
 }
 
 function AppRoutes() {
-  const { isAuthenticated, isAnna, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const { pathname } = useLocation();
   const section = pathname.includes("request")
     ? "Requests"
@@ -71,7 +71,7 @@ function AppRoutes() {
         {isAuthenticated && (
           <header className="topbar">
             <div className="topbar-context">
-              <span>{isAnna ? "Workspace" : "My account"}</span>
+              <span>{isAdmin ? "Workspace" : "My account"}</span>
               <ChevronRight size={12} />
               <span>{section}</span>
             </div>
@@ -94,7 +94,7 @@ function AppRoutes() {
               path="/login"
               element={
                 isAuthenticated ? (
-                  <Navigate to={isAnna ? "/anna/dashboard" : "/dashboard"} />
+                  <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} />
                 ) : (
                   <Login />
                 )
@@ -112,8 +112,8 @@ function AppRoutes() {
               path="/dashboard"
               element={
                 <PrivateRoute>
-                  {isAnna ? (
-                    <Navigate to="/anna/dashboard" replace />
+                  {isAdmin ? (
+                    <Navigate to="/admin/dashboard" replace />
                   ) : (
                     <ClientDashboard />
                   )}
@@ -177,37 +177,37 @@ function AppRoutes() {
               }
             />
 
-            {/* Anna Routes */}
+            {/* Administrator routes */}
             <Route
-              path="/anna/dashboard"
+              path="/admin/dashboard"
               element={
-                <AnnaRoute>
-                  <AnnaDashboard />
-                </AnnaRoute>
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
               }
             />
             <Route
-              path="/anna/requests"
+              path="/admin/requests"
               element={
-                <AnnaRoute>
-                  <AnnaRequests />
-                </AnnaRoute>
+                <AdminRoute>
+                  <AdminRequests />
+                </AdminRoute>
               }
             />
             <Route
-              path="/anna/orders"
+              path="/admin/orders"
               element={
-                <AnnaRoute>
-                  <AnnaOrders />
-                </AnnaRoute>
+                <AdminRoute>
+                  <AdminOrders />
+                </AdminRoute>
               }
             />
             <Route
-              path="/anna/bills"
+              path="/admin/bills"
               element={
-                <AnnaRoute>
-                  <AnnaBills />
-                </AnnaRoute>
+                <AdminRoute>
+                  <AdminBills />
+                </AdminRoute>
               }
             />
 
@@ -217,8 +217,8 @@ function AppRoutes() {
                 <Navigate
                   to={
                     isAuthenticated
-                      ? isAnna
-                        ? "/anna/dashboard"
+                      ? isAdmin
+                        ? "/admin/dashboard"
                         : "/dashboard"
                       : "/login"
                   }

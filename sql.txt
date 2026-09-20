@@ -1,4 +1,6 @@
--- Anna Johnson Dashboard Queries
+-- Administrator dashboard queries
+-- Set this value to ADMIN_EMAIL from backend/.env before running the queries.
+SET @admin_email = 'admin@example.com';
 -- Home Cleaning Services Management System
 
 -- Query 1: Frequent clients – List the clients who completed the most service orders
@@ -62,7 +64,7 @@ SELECT
 FROM Clients c
 LEFT JOIN ServiceRequests sr ON c.client_id = sr.client_id
 WHERE sr.request_id IS NULL
-    AND c.email != 'anna@cleaningservices.com'
+    AND c.email != @admin_email
 ORDER BY c.created_at DESC;
 
 -- Query 5: Largest job – List the service requests with the largest number of rooms ever completed

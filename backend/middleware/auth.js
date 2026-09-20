@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-require("../config/env");
+const { isAdminEmail } = require("../config/env");
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -21,12 +21,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Middleware to check if user is Anna (admin)
-const isAnna = (req, res, next) => {
-  if (req.user.email !== "anna@cleaningservices.com") {
+const requireAdmin = (req, res, next) => {
+  if (!isAdminEmail(req.user.email)) {
     return res.status(403).json({ error: "Admin access required" });
   }
   next();
 };
 
-module.exports = { authenticateToken, isAnna };
+module.exports = { authenticateToken, requireAdmin };

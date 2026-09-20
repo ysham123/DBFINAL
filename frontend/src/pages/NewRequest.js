@@ -72,7 +72,7 @@ function NewRequest() {
     <div className="container" style={{ maxWidth: "700px" }}>
       <PageHeader
         title="New service request"
-        description="Tell us about your space. Anna will follow up with a quote."
+        description="Tell us about your space. Your service provider will follow up with a quote."
       />
       <div className="card">
         <Notice message={error} error />

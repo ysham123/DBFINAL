@@ -12,7 +12,7 @@ import { billAPI } from "../services/api";
 import Modal from "../components/Modal";
 import { Eye, Edit } from "lucide-react";
 
-function AnnaBills() {
+function AdminBills() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -232,4 +232,4 @@ function AnnaBills() {
   );
 }
 
-export default AnnaBills;
+export default AdminBills;

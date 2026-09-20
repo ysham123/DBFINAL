@@ -1,6 +1,6 @@
 # Project overview
 
-Anna’s Cleaning Services manages home cleaning requests, quote negotiation, orders, and billing. Clients and the administrator have separate workspaces.
+ServiceDesk is a white-label application for cleaning requests, quote negotiation, orders, and billing. Clients and the administrator have separate workspaces. Each deployment configures its branding and administrator identity.
 
 The database contains seven tables: Clients, ServiceRequests, RequestPhotos, Quotes, Orders, Bills, and BillRevisions. A client can submit multiple requests. Each request can have photos and successive quotes. Accepting a quote creates an order; a completed order can receive a bill with revision history.
 

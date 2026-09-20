@@ -1,11 +1,12 @@
 const express = require("express");
-const { authenticateToken, isAnna } = require("../middleware/auth");
+const { adminEmail } = require("../config/env");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const db = require("../config/database");
 
 const router = express.Router();
 
-// All dashboard routes require Anna authentication
-router.use(authenticateToken, isAnna);
+// All dashboard routes require administrator authentication
+router.use(authenticateToken, requireAdmin);
 
 // Query 1: Frequent clients
 router.get("/frequent-clients", async (req, res) => {
@@ -111,7 +112,8 @@ router.get("/accepted-quotes", async (req, res) => {
 // Query 4: Prospective clients
 router.get("/prospective-clients", async (req, res) => {
   try {
-    const [results] = await db.query(`
+    const [results] = await db.query(
+      `
       SELECT 
         c.client_id,
         c.first_name,
@@ -122,9 +124,11 @@ router.get("/prospective-clients", async (req, res) => {
       FROM Clients c
       LEFT JOIN ServiceRequests sr ON c.client_id = sr.client_id
       WHERE sr.request_id IS NULL
-        AND c.email != 'anna@cleaningservices.com'
+        AND c.email != ?
       ORDER BY c.created_at DESC
-    `);
+    `,
+      [adminEmail],
+    );
 
     res.json(results);
   } catch (error) {

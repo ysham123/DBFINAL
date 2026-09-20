@@ -1,4 +1,5 @@
 const express = require("express");
+const { isAdminEmail } = require("../config/env");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
@@ -67,7 +68,7 @@ router.post(
         credit_card_type,
       } = req.body;
 
-      if (email === "anna@cleaningservices.com") {
+      if (isAdminEmail(email)) {
         return res
           .status(403)
           .json({ error: "This email is reserved for the administrator." });
@@ -117,6 +118,7 @@ router.post(
           first_name,
           last_name,
           email,
+          isAdmin: false,
         },
       });
     } catch (error) {
@@ -178,7 +180,7 @@ router.post(
           first_name: user.first_name,
           last_name: user.last_name,
           email: user.email,
-          isAnna: user.email === "anna@cleaningservices.com",
+          isAdmin: isAdminEmail(user.email),
         },
       });
     } catch (error) {

@@ -3,7 +3,8 @@ const cors = require("cors");
 const path = require("node:path");
 const fs = require("node:fs");
 const multer = require("multer");
-const { uploadDir, clientOrigin } = require("./config/env");
+const { uploadDir, clientOrigin, adminEmail } = require("./config/env");
+const { isEmail } = require("validator");
 const db = require("./config/database");
 
 const app = express();
@@ -73,6 +74,10 @@ app.use((err, req, res, next) => {
 });
 
 async function start() {
+  if (!isEmail(adminEmail))
+    throw new Error(
+      "Set ADMIN_EMAIL to your administrator's email address in backend/.env.",
+    );
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
     throw new Error(
       "Set JWT_SECRET to a random value of at least 32 characters in backend/.env.",

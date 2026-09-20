@@ -19,7 +19,7 @@ const toLocalDateTime = (value) => {
     .slice(0, 16);
 };
 
-function AnnaRequests() {
+function AdminRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,7 +29,7 @@ function AnnaRequests() {
   const [quoteData, setQuoteData] = useState({
     quoted_price: "",
     scheduled_datetime: "",
-    anna_notes: "",
+    provider_notes: "",
   });
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
@@ -59,7 +59,7 @@ function AnnaRequests() {
     setQuoteData({
       quoted_price: request.proposed_budget,
       scheduled_datetime: toLocalDateTime(request.preferred_datetime),
-      anna_notes: "",
+      provider_notes: "",
     });
     setShowModal(true);
   };
@@ -220,9 +220,9 @@ function AnnaRequests() {
               <textarea
                 id="notes"
                 rows="3"
-                value={quoteData.anna_notes}
+                value={quoteData.provider_notes}
                 onChange={(e) =>
-                  setQuoteData({ ...quoteData, anna_notes: e.target.value })
+                  setQuoteData({ ...quoteData, provider_notes: e.target.value })
                 }
                 placeholder="Additional notes for the client"
               />
@@ -251,4 +251,4 @@ function AnnaRequests() {
   );
 }
 
-export default AnnaRequests;
+export default AdminRequests;

@@ -5,6 +5,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const os = require("node:os");
 
+process.env.ADMIN_EMAIL = "owner@northstar.example";
 process.env.JWT_SECRET = "local-api-test-secret-with-at-least-32-characters";
 let base;
 let server;
@@ -21,7 +22,7 @@ const token = (admin = false) =>
   jwt.sign(
     {
       client_id: 2,
-      email: admin ? "anna@cleaningservices.com" : "client@example.com",
+      email: admin ? process.env.ADMIN_EMAIL : "client@example.com",
     },
     process.env.JWT_SECRET,
   );
@@ -77,15 +78,104 @@ test("client cannot access admin routes", async () => {
   );
 });
 
+test("the configured administrator can access the workspace", async () => {
+  const response = await fetch(base + "/api/requests/all", {
+    headers: headers(true),
+  });
+  assert.equal(response.status, 200);
+});
+
+test("the former administrator email has no special access", async () => {
+  const previousToken = jwt.sign(
+    { client_id: 1, email: "anna@cleaningservices.com" },
+    process.env.JWT_SECRET,
+  );
+  const response = await fetch(base + "/api/requests/all", {
+    headers: { Authorization: "Bearer " + previousToken },
+  });
+  assert.equal(response.status, 403);
+});
+
+test("custom administrator identity applies to requests, quotes, orders, and bills", async () => {
+  query = async () => [
+    [{ client_id: 99, request_id: 1, anna_notes: "Provider note" }],
+  ];
+  for (const route of [
+    "/api/requests/1",
+    "/api/quotes/request/1",
+    "/api/orders/1",
+    "/api/bills/1",
+  ]) {
+    assert.equal(
+      (await fetch(base + route, { headers: headers() })).status,
+      403,
+      route,
+    );
+    assert.equal(
+      (await fetch(base + route, { headers: headers(true) })).status,
+      200,
+      route,
+    );
+  }
+});
+
+test("login exposes a neutral admin flag for the configured account", async () => {
+  const password_hash = await require("bcryptjs").hash("test-password", 4);
+  query = async () => [
+    [
+      {
+        client_id: 1,
+        email: process.env.ADMIN_EMAIL,
+        first_name: "Workspace",
+        last_name: "Administrator",
+        password_hash,
+      },
+    ],
+  ];
+  const response = await request("/api/auth/login", {
+    email: process.env.ADMIN_EMAIL,
+    password: "test-password",
+  });
+  assert.equal(response.status, 200);
+  const { client } = await response.json();
+  assert.equal(client.isAdmin, true);
+  assert.equal(Object.hasOwn(client, "isAnna"), false);
+});
+
+test("reports exclude the configured administrator using a query parameter", async () => {
+  let parameters;
+  query = async (sql, params) => {
+    parameters = params;
+    return [[]];
+  };
+  const response = await fetch(base + "/api/dashboard/prospective-clients", {
+    headers: headers(true),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(parameters, [process.env.ADMIN_EMAIL]);
+});
+
+test("quote responses expose provider notes without changing stored columns", async () => {
+  query = async () => [
+    [{ quote_id: 1, client_id: 2, anna_notes: "Use the side entrance." }],
+  ];
+  const response = await fetch(base + "/api/quotes/request/1", {
+    headers: headers(),
+  });
+  const [quote] = await response.json();
+  assert.equal(quote.provider_notes, "Use the side entrance.");
+  assert.equal(Object.hasOwn(quote, "anna_notes"), false);
+});
+
 test("registration returns a useful validation message and reserves the admin email", async () => {
   const invalid = await request("/api/auth/register", { email: "bad" });
   assert.equal(invalid.status, 400);
   assert.match((await invalid.json()).error, /email/);
   const reserved = await request("/api/auth/register", {
-    email: "anna@cleaningservices.com",
+    email: process.env.ADMIN_EMAIL,
     password: "test-password",
-    first_name: "Anna",
-    last_name: "Johnson",
+    first_name: "Workspace",
+    last_name: "Administrator",
     address: "1 Main St",
     phone_number: "5551234567",
   });
@@ -280,6 +370,24 @@ test("new quotes accept valid input and commit their transaction", async () => {
   );
   assert.equal(response.status, 201);
   assert.deepEqual(calls.slice(-2), ["commit", "release"]);
+});
+
+test("bill revisions expose a neutral administrator name", async () => {
+  query = async (sql) =>
+    sql.includes("BillRevisions")
+      ? [
+          [
+            {
+              revision_id: 1,
+              revised_by: "anna",
+              revision_note: "Adjusted amount",
+            },
+          ],
+        ]
+      : [[{ bill_id: 1, client_id: 2 }]];
+  const response = await fetch(base + "/api/bills/1", { headers: headers() });
+  const bill = await response.json();
+  assert.equal(bill.revisions[0].revised_by, "admin");
 });
 
 test("invalid report filters return 400", async () => {

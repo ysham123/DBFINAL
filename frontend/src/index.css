@@ -6,6 +6,11 @@
   --border: #e5e9e8;
   --accent: #236653;
   --accent-soft: #edf5f1;
+  --accent-hover: #1b5545;
+  --accent-ink: #174436;
+  --accent-contrast: #fff;
+  --accent-border: #d1dfd8;
+  --accent-wash: #e5eee8;
   --radius: 10px;
   font-family:
     Inter,
@@ -34,11 +39,11 @@ textarea {
   font: inherit;
 }
 a {
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
 }
 a:hover {
-  color: #164b3c;
+  color: var(--accent-ink);
 }
 button {
   cursor: pointer;
@@ -109,10 +114,23 @@ strong {
   width: 37px;
   height: 37px;
   border-radius: 10px;
-  color: white;
+  color: var(--accent-contrast);
   background: var(--accent);
 }
+.brand-logo {
+  width: 37px;
+  height: 37px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.brand-mark {
+  flex-shrink: 0;
+}
+.brand > span:last-child {
+  min-width: 0;
+}
 .brand-name {
+  overflow-wrap: anywhere;
   display: block;
   font-size: 19px;
   letter-spacing: -0.6px;
@@ -156,7 +174,7 @@ strong {
 }
 .nav-link.active {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .sidebar-bottom {
@@ -299,13 +317,13 @@ strong {
 .btn-success {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
 }
 .btn-primary:hover,
 .btn-success:hover {
-  background: #1b5545;
-  border-color: #1b5545;
-  color: white;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast);
 }
 .btn-secondary {
   color: #505b59;
@@ -554,8 +572,8 @@ input::file-selector-button {
   min-width: 0;
 }
 .next-service {
-  background: #f2f6f1;
-  border-color: #e0e8dd;
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
 }
 .service-date {
   font-size: 27px;
@@ -571,7 +589,7 @@ input::file-selector-button {
 .service-address {
   margin: 22px 0;
   padding-top: 20px;
-  border-top: 1px solid #dde5d9;
+  border-top: 1px solid var(--accent-border);
   font-size: 12px;
 }
 .service-address svg {
@@ -704,7 +722,7 @@ input::file-selector-button {
   grid-template-columns: 45% 55%;
 }
 .auth-story {
-  background: #eaf0e8;
+  background: var(--accent-soft);
   padding: 48px 56px;
   position: relative;
   overflow: hidden;
@@ -727,7 +745,7 @@ input::file-selector-button {
   font-weight: 450;
   line-height: 1.12;
   letter-spacing: -2.5px;
-  color: #294335;
+  color: var(--accent-ink);
   margin: 20px 0;
 }
 .auth-story-copy p {
@@ -742,13 +760,13 @@ input::file-selector-button {
   height: 490px;
   bottom: -280px;
   right: -120px;
-  border: 1px solid #cddbc9;
+  border: 1px solid var(--accent-border);
   border-radius: 50%;
   box-shadow:
-    0 0 0 55px #e0e9db,
-    0 0 0 56px #cddbc9,
-    0 0 0 110px #e5ede0,
-    0 0 0 111px #cddbc9;
+    0 0 0 55px var(--accent-wash),
+    0 0 0 56px var(--accent-border),
+    0 0 0 110px var(--accent-soft),
+    0 0 0 111px var(--accent-border);
 }
 .auth-footer {
   color: #7b897c;

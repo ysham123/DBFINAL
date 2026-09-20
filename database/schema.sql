@@ -117,6 +117,4 @@ CREATE TABLE BillRevisions (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Insert Anna's account (contractor/admin)
-INSERT INTO Clients (first_name, last_name, address, phone_number, email, password_hash)
-VALUES ('Anna', 'Johnson', '123 Business St, City, State', '555-0100', 'anna@cleaningservices.com', '$2a$10$placeholder_hash_change_on_first_run');
+-- setup-database.js creates the configured administrator after loading the schema.
